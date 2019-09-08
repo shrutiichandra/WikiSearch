@@ -104,7 +104,7 @@ class Text_Preprocessing():
             total_stems = []
             extend = total_stems.extend
             for one_token in tokens:
-                token_list = one_token.split()
+                token_list = self.tokenizer.tokenize(one_token)
                 filtered_sentence = [w for w in token_list if not w in self.stop_words]
                 stemmed_list = [self.ps(word) for word in filtered_sentence]
                 extend(stemmed_list)
@@ -121,7 +121,11 @@ class Text_Preprocessing():
             title_start = compile('.*title =|.*title=')
 
             tokenized_corpus = [ref_start.findall(sent) for sent in sent_tokenize(text) if len(ref_start.findall(sent))>0  ]
+
             tokenized_corpus = list(chain(*tokenized_corpus))
+            # print('==========')
+            # print(tokenized_corpus)
+            # print('----------------')
             if len(tokenized_corpus) > 4:
                 tokenized_corpus = tokenized_corpus[0:4]
             total_stems = []
@@ -130,12 +134,13 @@ class Text_Preprocessing():
                 text = text.replace(match_list, '')
                 pipe_tokens = match_list.split('|')
                 for one_token in pipe_tokens:
-
                     if title_start.match(one_token):
-
+                        
                         title = one_token.split('=')[1]
-                        token_list = title.split()
+                        token_list = self.tokenizer.tokenize(title)
+
                         filtered_sentence = [w.lower() for w in token_list if not w in self.stop_words]
+                        
                         stemmed_list = [self.ps(word) for word in filtered_sentence]
                         extend(stemmed_list)
             
@@ -161,7 +166,7 @@ class Text_Preprocessing():
         extend = total_stems.extend
         for one_line in content:
                
-            token_list = word_tokenize(one_line)
+            token_list = self.tokenizer.tokenize(one_line)
             filtered_sentence = [w for w in token_list if not w in self.stop_words]
             stemmed_list = [self.ps(word) for word in filtered_sentence]
             extend(stemmed_list)
@@ -179,9 +184,10 @@ class Text_Preprocessing():
         for k,v in self.d.items():
             # i += 1
             match_title = title_regex.match(v['title'])
-            self.process_title(v['title'], v['id'])
+            # self.process_title(v['title'], v['id'])
             if not match_title:
                 body = v['body']
+
                 x = self.process_categories(body, v['id'])
                
                 x = self.process_infobox(x, v['id'])
