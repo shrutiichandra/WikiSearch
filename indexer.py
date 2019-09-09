@@ -205,6 +205,7 @@ def  merge_index_files(num_chunks, path_to_index_folder):
         index_ = 'temp'+str(n)+'.txt'
         path = os.path.join(path_to_index_folder,index_)
         file_pointers[n].close()
+        os.remove(path)
     return big_dict
 
 start_time = time.time()        
