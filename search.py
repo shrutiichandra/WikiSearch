@@ -24,18 +24,18 @@ def write_file(outputs, path_to_output):
             file.write('\n')
 
 
-def search(path_to_index, queries):
+def search(queries, path_to_index_folder):
     
     '''Write your code here'''
     # print('here')
 
-    index = srch.read_index(path_to_index)
+    # index = srch.read_index(path_to_index)
     outputs = []
     add = outputs.append
-    queries = [x[:-1] for x in queries]
-    index_file = path_to_index
+    queries = [x[:-1] for x in queries] # removes new line from query
+    # index_file = path_to_index
     for one_query in queries:
-            q = srch.Query_PreProcess(one_query, index)
+            q = srch.Query_PreProcess(one_query, path_to_index_folder)
             results = q.search()
             add(results)
     return outputs
@@ -47,13 +47,16 @@ def main():
     #testfile = sys.argv[2]
     #path_to_output = sys.argv[3]
     path_to_index_folder = sys.argv[1]   
-    path_to_index = os.path.join(path_to_index_folder,'index.txt')
+    
+    # path_to_index = os.path.join(path_to_index_folder,'index.txt')
     testfile = sys.argv[2] # input query file
     path_to_output = sys.argv[3]
     path_to_mapping_file = os.path.join(path_to_index_folder,'mapping.txt')
     srch.read_mapping(path_to_mapping_file)
+    
     queries = read_file(testfile)
-    outputs = search(path_to_index, queries)
+    outputs = search(queries, path_to_index_folder)
+
     write_file(outputs, path_to_output)
 
 if __name__ == '__main__':

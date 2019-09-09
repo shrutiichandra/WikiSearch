@@ -34,7 +34,7 @@ class Text_Preprocessing():
         
         token_list = self.tokenizer.tokenize(text)    
         filtered_sentence = [w for w in token_list if not w in self.stop_words]
-        stemmed_list = [self.ps(word) for word in filtered_sentence]
+        stemmed_list = [self.ps(word) for word in filtered_sentence if len(word)<20]
     
         for word in stemmed_list:
             self.posting_list = self.check(word, pageNumber, 't')
@@ -55,7 +55,7 @@ class Text_Preprocessing():
             category_name = category_name.lower()
             token_list = self.tokenizer.tokenize(category_name)
             filtered_sentence = [w for w in token_list if not w in self.stop_words]
-            stemmed_list = [self.ps(word) for word in filtered_sentence]
+            stemmed_list = [self.ps(word) for word in filtered_sentence if len(word)<20]
             extend(stemmed_list)
         
         for word in total_stems: # ['data', 'scienc', 'peopl', 'birth']
@@ -106,7 +106,7 @@ class Text_Preprocessing():
             for one_token in tokens:
                 token_list = self.tokenizer.tokenize(one_token)
                 filtered_sentence = [w for w in token_list if not w in self.stop_words]
-                stemmed_list = [self.ps(word) for word in filtered_sentence]
+                stemmed_list = [self.ps(word) for word in filtered_sentence if len(word)<20]
                 extend(stemmed_list)
             for word in total_stems:
                 self.posting_list = self.check(word, pageNumber, 'i')
@@ -141,7 +141,7 @@ class Text_Preprocessing():
 
                         filtered_sentence = [w.lower() for w in token_list if not w in self.stop_words]
                         
-                        stemmed_list = [self.ps(word) for word in filtered_sentence]
+                        stemmed_list = [self.ps(word) for word in filtered_sentence if len(word)<20]
                         extend(stemmed_list)
             
             for word in total_stems:
@@ -168,7 +168,7 @@ class Text_Preprocessing():
                
             token_list = self.tokenizer.tokenize(one_line)
             filtered_sentence = [w for w in token_list if not w in self.stop_words]
-            stemmed_list = [self.ps(word) for word in filtered_sentence]
+            stemmed_list = [self.ps(word) for word in filtered_sentence if len(word)<20]
             extend(stemmed_list)
 
         for word in total_stems:

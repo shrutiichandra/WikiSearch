@@ -58,6 +58,7 @@ class WikiXmlHandler(sx.handler.ContentHandler):
                 path2index = os.path.join(self.path_to_index_folder, 'temp'+str(self.chunk-1)+'.txt')
                 Text_Preprocessing.parse_posting_list(path2index)
                 print('done temp',str(self.chunk-1),'.txt')
+                
                 path2docMap = os.path.join(self.path_to_index_folder, 'mapping'+str(self.chunk-1)+'.txt')
                 i = 0
                 rng = tuple()
@@ -66,13 +67,14 @@ class WikiXmlHandler(sx.handler.ContentHandler):
                     for doc_id, title in self._doc_map.items():
                         if i==0:
                             rng += (doc_id,)
-                        if i == len(self._doc_map):
-                            rng += (doc_id,)
                         i+=1
-
+                        if i == len(self._doc_map):
+                            rng += (doc_id,)    
                         line = str(doc_id) + "|" + title + '\n'
                         f.write(line)
+
                 self.map_id_idx[self.chunk-1] = rng
+                
 
             if self.check:
             #renew the counts
@@ -102,8 +104,8 @@ def  parse_xml_and_index(path_to_index_folder, path2dump):
         handler.chunk += 1
         handler.check = True
         print('done chunk ', handler.chunk)
-        #stop parsing now
-        #make the index 
+        # stop parsing now
+        # make the index 
         print('len map: ',len(handler.another_map))
         Text_Preprocessing = tp.Text_Preprocessing(handler.another_map)
 
@@ -119,13 +121,19 @@ def  parse_xml_and_index(path_to_index_folder, path2dump):
             for doc_id, title in handler._doc_map.items():
                 if i==0:
                     rng += (doc_id,)
+    
+                i+=1
                 if i == len(handler._doc_map):
                     rng += (doc_id,)
-                i+=1
 
                 line = str(doc_id) + "|" + title + '\n'
                 f.write(line)
         handler.map_id_idx[handler.chunk-1] = rng
+    
+    completedocMap = os.path.join(path_to_index_folder, 'mapping.txt')
+    with open(completedocMap, 'w') as f:
+        print(handler.map_id_idx, file=f)
+    
 
         
 
@@ -145,10 +153,8 @@ def  merge_index_files(num_chunks, path_to_index_folder):
         index_ = 'temp'+str(n)+'.txt'
         path = os.path.join(path_to_index_folder,index_)
         file_pointers[n] = open(path, 'r') # 0,1,2
-
     
-    
-    index_ = 'temp0.txt' #index1, index2, index3
+    index_ = 'temp0.txt' #temp0, temp1, temp2
     path = os.path.join(path_to_index_folder,index_)
     file_pointers[0] = open(path, 'r') # 0,1,2
     first_line = file_pointers[0].readline() #0,1,2
@@ -164,7 +170,7 @@ def  merge_index_files(num_chunks, path_to_index_folder):
     #start by reading temp index1
     while heap.heap:
         
-        index_ = 'temp'+str(n)+'.txt' #index0, index1, index2
+        index_ = 'temp'+str(n)+'.txt' #temp0, temp1, temp2
         path = os.path.join(path_to_index_folder,index_)
 
         first_line = file_pointers[n].readline() #0,1,2
@@ -187,13 +193,14 @@ def  merge_index_files(num_chunks, path_to_index_folder):
             big_dict[key] = val
             heap.insertKey(key) 
             # print('insertKey: ',key, ' now heap: ',heap.heap)
-            n = (n+1)%3
+            n = (n+1)%num_chunks
     
-        if len(heap.heap)==3 or last:
+        if len(heap.heap)==num_chunks or last:
             minimum_key = heap.extractMin() #pop
             # print('min extracted ',minimum_key, 'now heap: ',heap.heap)
                         
     print(len(big_dict))
+    # close the files
     for n in range(num_chunks):
         index_ = 'temp'+str(n)+'.txt'
         path = os.path.join(path_to_index_folder,index_)
@@ -205,6 +212,7 @@ dict_index = merge_index_files(3, path_to_index_folder)
 print("MERGING:  %s min ---" % ((time.time() - start_time)/60.0))
 
 def parse_dict(index, path_to_index_folder,parts=4):
+    index = dict(sorted(index.items()))
     map_words_dict = {}
     size_big_idx = len(index)
     
@@ -221,7 +229,7 @@ def parse_dict(index, path_to_index_folder,parts=4):
         lines_list.append(line)
         
         if chunk == part_size:
-            print('chunk: ',chunk)
+            
             block += 1
             chunk = 0
             begin = lines_list[0].split('|', 1)[0]
@@ -247,6 +255,10 @@ def parse_dict(index, path_to_index_folder,parts=4):
     # print(map_words_dict)
 
     # delete temp indices
+    completeWordMap = os.path.join(path_to_index_folder, 'WordMapping.txt')
+    with open(completeWordMap, 'w') as f:
+        print(map_words_dict, file=f)
+
 
 
 parse_dict(dict_index, path_to_index_folder)
