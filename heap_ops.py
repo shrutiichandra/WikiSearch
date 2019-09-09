@@ -9,7 +9,6 @@ class MinHeap:
 		return self.f < other.f
 	def parent(self, i): 
 		return (i-1)/2
-	
 
 	def insertKey(self, item): 
 		

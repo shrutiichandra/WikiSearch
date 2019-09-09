@@ -197,4 +197,22 @@ class Text_Preprocessing():
                     x = self.process_body_text(x, v['id'])
             # print(i,end=' ')
                     
-        return self.posting_list
+        return
+
+    def parse_posting_list(self, path2index):
+        complete_index = dict(sorted(self.posting_list.items()))
+
+        for term, posting_list in complete_index.items():
+            one_line = ""
+            one_line = term + "|"
+            for doc_id, occurences in posting_list.items(): 
+                one_line += str(doc_id) + "$"
+                
+                for field, count in occurences.items():
+                    one_line += field + ":" + str(count) + "#"
+                    
+                one_line += "|"
+            one_line += "\n"
+            with open(path2index, 'a+') as i:
+                i.write(one_line)
+    #one line: 0|29$i:1#n:1#|61$i:1#n:1#|..
