@@ -299,6 +299,7 @@ class Text_Preprocessing():
         # print('make index')
         title_regex = compile('.*?:')
         for k,v in self.d.items():
+            t1,t2,t3,t4,t5=0,0,0,0,0
             t = time.time() 
             match_title = title_regex.match(v['title'])
             self.process_title(v['title'], v['id'])            
