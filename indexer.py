@@ -53,9 +53,13 @@ class WikiXmlHandler(sx.handler.ContentHandler):
                 #make the index 
                 print('len map: ',len(self.another_map))
                 Text_Preprocessing = tp.Text_Preprocessing(self.another_map)
-
+                t = time.time()
                 Text_Preprocessing.make_index()                
+                print('time to make index: ',time.time()-t)
                 path2index = os.path.join(self.path_to_index_folder, 'temp'+str(self.chunk-1)+'.txt')
+                # s=False
+                # if self.chunk-1==0:
+                #     s=True
                 Text_Preprocessing.parse_posting_list(path2index)
                 print('done temp',str(self.chunk-1),'.txt')
                 
@@ -133,19 +137,41 @@ def  parse_xml_and_index(path_to_index_folder, path2dump):
     completedocMap = os.path.join(path_to_index_folder, 'mapping.txt')
     with open(completedocMap, 'w') as f:
         print(handler.map_id_idx, file=f)
-    
-
+        
+    return handler.chunk
         
 
     
 
 start_time = time.time()        
-parse_xml_and_index(path_to_index_folder,path2dump)
+num_chunks = parse_xml_and_index(path_to_index_folder,path2dump)
 print('temp indices and parsing : ', (time.time()-start_time)/60.0, 'min ')
+# num_chunks = 3
 
-#TO DO: change hardcoded 3
+def parse_dict(index, path_to_index_folder,map_words_dict, block):
+    index = dict(sorted(index.items()))
+    
+       
+    lines_list = []
+    
+    for term,posting_list in index.items():
+        line = term + "|" + posting_list +'\n'
+  
+        
+        lines_list.append(line)
+        
+        begin = lines_list[0].split('|', 1)[0]
+        end = lines_list[-1].split('|', 1)[0]
+        map_words_dict[block] = (begin,end)
+        path2index = os.path.join(path_to_index_folder, 'index'+str(block)+'.txt')                            
+        with open(path2index, 'w+') as i:
+            for l in lines_list:
+                i.write(l)
+
 def  merge_index_files(num_chunks, path_to_index_folder):
     big_dict = {}
+    map_words_dict = {}
+    block = 0
     heap = hp.MinHeap()
     file_pointers = [None] * num_chunks
 
@@ -162,104 +188,74 @@ def  merge_index_files(num_chunks, path_to_index_folder):
     val = val.strip('\n')
     big_dict[key] = val
     
-    heap.insertKey(key) # (('a', 1)), ('b',2), ('c', 3) )
+    heap.insertKey((key,0)) 
 
     n = 1
-    last = False
-    
+    last = [False]*num_chunks
+    t=time.time()
     #start by reading temp index1
     while heap.heap:
-        
+        key,val = None,None
+    
         index_ = 'temp'+str(n)+'.txt' #temp0, temp1, temp2
         path = os.path.join(path_to_index_folder,index_)
-
         first_line = file_pointers[n].readline() #0,1,2
-        # print('reading', index_)
+    
         if first_line:
             key, val = first_line.split('|', 1)
+            
             val = val.strip('\n')
-
-        else:
-            last = True
-        
-        try:    
-            # print('key:',key)
-            #key is already present; read from this file
-            x = big_dict[key]
-            big_dict[key] = x + val
-            # print('merged val of ',key)
-
-        except:    
-            big_dict[key] = val
-            heap.insertKey(key) 
-            # print('insertKey: ',key, ' now heap: ',heap.heap)
-            n = (n+1)%num_chunks
     
-        if len(heap.heap)==num_chunks or last:
+            try:    
+                x = big_dict[key]
+                big_dict[key] = x + val
+            except:    
+                big_dict[key] = val
+
+            heap.insertKey((key,n)) 
+
+
+            if len(big_dict)==10000:
+                block += 1
+                exclude_keys = [key]
+                big_dict = {k: big_dict[k] for k in set(list(big_dict.keys())) - set(exclude_keys)}
+                print('parsing dict for block ',block)
+                t = time.time()
+                parse_dict(big_dict, path_to_index_folder, map_words_dict, block)
+                print('parsing done in %f sec'%time.time()-t)
+                big_dict = {}
+    
+        else:
+            last[n] = True
+    
+
+        if len(heap.heap)==num_chunks or last[n]:
+    
             minimum_key = heap.extractMin() #pop
-            # print('min extracted ',minimum_key, 'now heap: ',heap.heap)
-                        
-    print(len(big_dict))
+    
+            n = minimum_key[1]
+    
+        else:
+            n = (n+1)%num_chunks       
+    
+    if len(big_dict)>0:
+        block += 1
+        print('parsing dict for block ',block)
+        parse_dict(big_dict, path_to_index_folder, map_words_dict, block)
+        big_dict = {}
+    
+    print('creating WordMapping')
+    completeWordMap = os.path.join(path_to_index_folder, 'WordMapping.txt')
+    with open(completeWordMap, 'w') as f:
+        print(map_words_dict, file=f)
     # close the files
     for n in range(num_chunks):
         index_ = 'temp'+str(n)+'.txt'
         path = os.path.join(path_to_index_folder,index_)
         file_pointers[n].close()
         os.remove(path)
-    return big_dict
+    
 
 start_time = time.time()        
-dict_index = merge_index_files(3, path_to_index_folder)
+merge_index_files(num_chunks, path_to_index_folder)
 print("MERGING:  %s min ---" % ((time.time() - start_time)/60.0))
-
-def parse_dict(index, path_to_index_folder,parts=4):
-    index = dict(sorted(index.items()))
-    map_words_dict = {}
-    size_big_idx = len(index)
-    
-    part_size = size_big_idx//parts
-    
-    chunk = 0
-    block = 0   
-    lines_list = []
-    
-    for term,posting_list in index.items():
-        line = term + "|" + posting_list +'\n'
-        chunk += 1
-        
-        lines_list.append(line)
-        
-        if chunk == part_size:
-            
-            block += 1
-            chunk = 0
-            begin = lines_list[0].split('|', 1)[0]
-            end = lines_list[-1].split('|', 1)[0]
-            map_words_dict[block] = (begin,end)
-            path2index = os.path.join(path_to_index_folder, 'index'+str(block)+'.txt')                            
-            with open(path2index, 'w+') as i:
-                for l in lines_list:
-                    i.write(l)
-            lines_list = [] 
-            
-    if lines_list:
-        block += 1
-        print(lines_list)
-        begin = lines_list[0].split('|', 1)[0]
-        end = lines_list[-1].split('|', 1)[0]
-        map_words_dict[block] = (begin,end)
-        path2index = os.path.join(path_to_index_folder, 'index'+str(block)+'.txt')                            
-        with open(path2index, 'w+') as i:
-            for l in lines_list:
-                i.write(l)
-            lines_list = [] 
-    # print(map_words_dict)
-
-    # delete temp indices
-    completeWordMap = os.path.join(path_to_index_folder, 'WordMapping.txt')
-    with open(completeWordMap, 'w') as f:
-        print(map_words_dict, file=f)
-
-
-
-parse_dict(dict_index, path_to_index_folder)

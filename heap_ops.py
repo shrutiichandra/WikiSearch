@@ -5,8 +5,8 @@ class MinHeap:
 	def __init__(self):
 		self.heap = []
 
-	def __lt__(self, other):
-		return self.f < other.f
+	# def __lt__(self, other):
+	# 	return self.f < other.f
 	def parent(self, i): 
 		return (i-1)/2
 
@@ -20,3 +20,5 @@ class MinHeap:
 		return heappop(self.heap) 
 
 # l = ["0", {"10027": {"i": 5, "n"/s
+# h = MinHeap()
+# h.insertKey(('0',0))
