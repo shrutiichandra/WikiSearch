@@ -4,7 +4,7 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem.snowball import SnowballStemmer
 from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import ToktokTokenizer
-from re import search, match, findall, sub, compile, finditer, DOTALL, split
+from re import search, match, findall, sub, compile, finditer, DOTALL, split, escape
 import nltk.data
 from itertools import chain
 import time
@@ -60,8 +60,6 @@ class Text_Preprocessing():
         rem = '[[Category:%s]]'
         extend = total_stems.extend
         for one_match in match_cat_list[:4]:
-            
-
         
             text = text.replace(rem%(one_match), '')
             category_name = one_match[n:-3] # say, Indian Culture
@@ -81,6 +79,7 @@ class Text_Preprocessing():
             self.posting_list = self.check(word, pageNumber, 'n')
             self.posting_list[word][pageNumber]['c'] += 1
             self.posting_list[word][pageNumber]['n'] += 1
+        
         return text
     
     def process_infobox(self, text, pageNumber):    
@@ -157,9 +156,10 @@ class Text_Preprocessing():
                     if title_start.match(one_token):
 
                         title = one_token.split('=')[1]
-                        token_list = title.split()
+                        token_list = self.tokenizer.tokenize(one_token)
                         filtered_sentence = [w.lower() for w in token_list if not w in self.stop_words]
                         stemmed_list = [self.ps(word) for word in filtered_sentence]
+                        stemmed_list = list(filter(None, stemmed_list)) 
                         extend(stemmed_list)
             
             for word in total_stems:
@@ -170,11 +170,18 @@ class Text_Preprocessing():
     
     def process_body_text(self, text, pageNumber):
         
-        body_ = compile('==(.*?)==|\{\{(.*?)\}\}|#(.*?)|\{\{(.*?)|\|(.*?)|\}\}|\*.*|!.*|\[\[|\]\]|;.*|&lt;.*&gt;.*&lt;/.*&gt;|<.*>.*</.*>|<.*>')
-        matches = body_.findall(text)
-        text = str(filter(lambda x: text.replace(x,''), matches ))
+        body_ = compile(r'==(.*)==|{{(.*)}}|#(.*)|{{(.*)|{{(.*)|\|(.*)|\}\}|\*.*|!.*|\[\[|\]\]|;.*|&lt;.*&gt;.*&lt;/.*&gt;|<.*>.*</.*>|<.*>')
+        matches = list(chain.from_iterable(body_.findall(text)))
+
+        matches = list(filter(None, matches)) 
+        # text = filter(lambda x: text.replace(x,''), matches )
+        big_regex = compile('|'.join(map(escape, matches)))
+        text = big_regex.sub('',text)
+        
+        
         content = text.splitlines()
         content = list(filter(lambda x: x.strip(), content))
+
         content = [" ".join(findall("[a-zA-Z]+", x)).strip() for x in content]
         content = list(filter(None, content)) 
         
@@ -183,7 +190,7 @@ class Text_Preprocessing():
         total_stems = []
         extend = total_stems.extend
         if len(content)>200:
-            for one_line in range(0,len(content),2):
+            for one_line in range(0,len(content),5):
                    
                 token_list = word_tokenize(content[one_line])
                 filtered_sentence = [w for w in token_list if not w in self.stop_words]
@@ -196,6 +203,7 @@ class Text_Preprocessing():
                 filtered_sentence = [w for w in token_list if not w in self.stop_words]
                 stemmed_list = [self.ps(word) for word in filtered_sentence]
                 extend(stemmed_list)
+        
         for word in total_stems:
             # if word == '':
                 # print('here null boy')
@@ -299,6 +307,7 @@ class Text_Preprocessing():
         # print('make index')
         title_regex = compile('.*?:')
         for k,v in self.d.items():
+            
             t1,t2,t3,t4,t5=0,0,0,0,0
             t = time.time() 
             match_title = title_regex.match(v['title'])
@@ -312,12 +321,13 @@ class Text_Preprocessing():
                 t= time.time()
                 x = self.process_infobox(x, v['id'])
                 t3= time.time()-t
-                # if x is not None:
+                if x is not None:
                     # t = time.time()
-                    # self.process_ref(x, v['id'])
+                    self.process_ref(x, v['id'])
                 t4=0
                 if x is not None:
                     t = time.time()
+                    
                     x = self.process_body_text(x, v['id'])
                     t5= time.time()-t
             T = t1+t2+t3+t4+t5
